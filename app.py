@@ -2,20 +2,24 @@ import streamlit as st
 from diffusers import StableDiffusionPipeline
 import torch
 
-# Initialize the model
-model_id = "CompVis/stable-diffusion-v1-4"
-pipe = StableDiffusionPipeline.from_pretrained(model_id)
-pipe.to("cuda" if torch.cuda.is_available() else "cpu")
+@st.cache_resource
+def load_model():
+    model_id = "CompVis/stable-diffusion-v1-4"
+    pipe = StableDiffusionPipeline.from_pretrained(model_id)
+    pipe.to("cuda" if torch.cuda.is_available() else "cpu")
+    return pipe
 
-# Image generation function
+pipe = load_model()
+
 def generate_image(prompt):
-    image = pipe(prompt).images[0]
-    return image
+    try:
+        image = pipe(prompt).images[0]
+        return image
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
-# Streamlit application
 st.set_page_config(page_title="AI Image Generator", page_icon=":camera:", layout="wide")
 
-# Custom CSS for beautifying the interface
 st.markdown("""
     <style>
     .main {
@@ -40,15 +44,15 @@ st.markdown("""
 st.title("AI Image Generator")
 st.markdown("**Enter a prompt to generate an image**")
 
-# Input and Output
 prompt = st.text_input("Prompt", placeholder="Enter text here")
+
 if st.button("Generate"):
     if prompt:
         with st.spinner("Generating image..."):
             image = generate_image(prompt)
-            st.image(image, caption="Generated Image")
+            if image:
+                st.image(image, caption="Generated Image")
     else:
         st.error("Please enter a prompt.")
 
-# Footer
 st.markdown('<footer>Powered by Ahsan TECH</footer>', unsafe_allow_html=True)
